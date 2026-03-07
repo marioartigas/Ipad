@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1a0533"/>
+      <stop offset="100%" stop-color="#050510"/>
+    </radialGradient>
+    <linearGradient id="wave" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="50%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#fb923c"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="100" fill="url(#bg)"/>
+  <!-- Lissajous decorativa -->
+  <path d="M 256 256
+    C 300 180, 380 160, 380 256
+    C 380 352, 300 332, 256 256
+    C 212 180, 132 160, 132 256
+    C 132 352, 212 332, 256 256 Z"
+    fill="none" stroke="url(#wave)" stroke-width="8" opacity="0.8"/>
+  <!-- Partículas -->
+  <circle cx="180" cy="200" r="6" fill="#a78bfa" opacity="0.9"/>
+  <circle cx="330" cy="200" r="4" fill="#ec4899" opacity="0.8"/>
+  <circle cx="256" cy="150" r="5" fill="#fb923c" opacity="0.9"/>
+  <circle cx="180" cy="310" r="3" fill="#60a5fa" opacity="0.7"/>
+  <circle cx="330" cy="310" r="5" fill="#34d399" opacity="0.8"/>
+  <circle cx="256" cy="370" r="4" fill="#f472b6" opacity="0.9"/>
+  <!-- Centro -->
+  <circle cx="256" cy="256" r="20" fill="url(#wave)" opacity="0.6"/>
+  <circle cx="256" cy="256" r="8" fill="white" opacity="0.9"/>
+</svg>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Palabra → Imagen Viva</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Pantalla de entrada -->
+    <div id="input-screen" class="screen active">
+      <div class="input-container">
+        <h1 class="title">Palabra → Imagen Viva</h1>
+        <p class="subtitle">Escribe una palabra y la transformaré en arte matemático animado</p>
+        <div class="input-wrapper">
+          <input
+            type="text"
+            id="word-input"
+            placeholder="Escribe una palabra..."
+            maxlength="30"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+          >
+          <div class="char-count"><span id="char-count">0</span>/30</div>
+        </div>
+        <button id="generate-btn" class="generate-btn" disabled>
+          <span class="btn-text">Generar</span>
+          <span class="btn-icon">✦</span>
+        </button>
+        <div class="examples">
+          <span class="examples-label">Prueba:</span>
+          <button class="example-btn" data-word="cosmos">cosmos</button>
+          <button class="example-btn" data-word="fuego">fuego</button>
+          <button class="example-btn" data-word="mar">mar</button>
+          <button class="example-btn" data-word="amor">amor</button>
+          <button class="example-btn" data-word="caos">caos</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pantalla de animación -->
+    <div id="animation-screen" class="screen">
+      <canvas id="main-canvas"></canvas>
+      <div id="overlay-ui">
+        <div id="word-display"></div>
+        <div id="algo-info"></div>
+        <div id="controls">
+          <button id="back-btn" class="ctrl-btn">← Volver</button>
+          <button id="cycle-btn" class="ctrl-btn">Siguiente modo ↺</button>
+          <button id="pause-btn" class="ctrl-btn">⏸ Pausar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
