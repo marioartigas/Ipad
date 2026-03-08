@@ -238,11 +238,21 @@ html, body {
   font-weight: 800;
   letter-spacing: 4px;
   text-transform: uppercase;
-  text-shadow: 0 0 40px currentColor, 0 0 80px currentColor;
-  opacity: 0.85;
+  opacity: 0.9;
   text-align: center;
   align-self: center;
   mix-blend-mode: overlay;
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  align-items: center;
+}
+
+#word-display .letter {
+  display: inline-block;
+  will-change: transform;
+  text-shadow: 0 0 30px currentColor, 0 0 60px currentColor;
+  transition: color 0.5s ease;
 }
 
 #algo-info {
@@ -1330,16 +1340,20 @@ function startAnimation(word) {
   const seed = window.hashWord(App.word);
   App.modeIndex = Math.floor(seed * window.AnimationModes.length);
 
-  // Actualizar UI
-  document.getElementById('word-display').textContent = word;
-  document.getElementById('pause-btn').textContent = '⏸ Pausar';
-
-  // Colorear el texto de la palabra según la paleta
+  // Actualizar UI — dividir en letras animables
   App.palette = window.buildPalette(App.word);
-  const c0 = App.palette[0];
-  const c1 = App.palette[1] || App.palette[0];
   const wordDisplay = document.getElementById('word-display');
-  wordDisplay.style.color = `hsl(${c0.h},${c0.s}%,${c0.l}%)`;
+  wordDisplay.innerHTML = '';
+  word.split('').forEach((ch, i) => {
+    const span = document.createElement('span');
+    span.className = 'letter';
+    span.textContent = ch === ' ' ? '\u00A0' : ch;
+    const c = App.palette[i % App.palette.length];
+    span.style.color = `hsl(${c.h},${c.s}%,${c.l}%)`;
+    wordDisplay.appendChild(span);
+  });
+  document.getElementById('pause-btn').textContent = '⏸ Pausar';
+  App.letterT = 0;
 
   switchScreen('animation-screen');
 
@@ -1368,12 +1382,71 @@ function loadMode(word, modeIndex) {
   loop();
 }
 
+function animateLetters() {
+  const spans = document.querySelectorAll('#word-display .letter');
+  const n = spans.length;
+  if (!n) return;
+  const t = App.letterT;
+  const mode = App.modeIndex % 6;
+
+  spans.forEach((span, i) => {
+    const phase = (i / n) * Math.PI * 2;
+    const charCode = App.word.charCodeAt(i % App.word.length);
+    const norm = charCode / 122; // a-z normalizado
+    let tx = 0, ty = 0, rot = 0, sc = 1;
+
+    switch (mode) {
+      case 0: // Partículas — órbita elíptica
+        tx = Math.sin(t * 0.7 + phase) * 14 * norm;
+        ty = Math.cos(t * 0.5 + phase) * 10;
+        rot = Math.sin(t * 0.4 + phase) * 12;
+        sc = 1 + Math.sin(t * 0.6 + phase) * 0.08;
+        break;
+      case 1: // Lissajous — onda sinusoidal
+        tx = Math.sin(t * 1.1 + phase * 1.5) * 8;
+        ty = Math.sin(t * 0.9 + phase) * 18;
+        rot = Math.cos(t * 0.6 + phase) * 10;
+        sc = 1 + Math.cos(t * 1.2 + phase) * 0.07;
+        break;
+      case 2: // Fourier — epiciclos
+        tx = Math.cos(t * (1 + norm * 0.5) + phase) * 10;
+        ty = Math.sin(t * (1 + norm * 0.3) + phase * 0.7) * 14;
+        rot = Math.sin(t * 0.8 + phase) * 15;
+        sc = 1 + Math.sin(t * 1.5 + phase) * 0.1;
+        break;
+      case 3: // Campo de flujo — deriva suave
+        tx = Math.sin(t * 0.4 + phase * 0.8) * 16 + Math.sin(t * 1.3 + phase) * 5;
+        ty = Math.cos(t * 0.3 + phase) * 12 + Math.cos(t * 0.9 + phase * 1.2) * 6;
+        rot = Math.sin(t * 0.25 + phase) * 18;
+        sc = 1 + Math.sin(t * 0.7 + phase * 0.5) * 0.09;
+        break;
+      case 4: // Mandelbrot — pulso radial
+        tx = Math.cos(t * 0.6 + phase) * 12 * norm;
+        ty = Math.sin(t * 0.6 + phase) * 12 * norm;
+        rot = t * (norm - 0.5) * 20 % 360;
+        sc = 1 + Math.sin(t * 1.8 + phase) * 0.12;
+        break;
+      case 5: // Reacción-Difusión — temblor orgánico
+        tx = (Math.sin(t * 2.1 + phase) + Math.sin(t * 1.3 + phase * 1.7)) * 7;
+        ty = (Math.cos(t * 1.7 + phase) + Math.cos(t * 0.9 + phase * 2.1)) * 9;
+        rot = Math.sin(t * 1.1 + phase) * Math.cos(t * 0.7 + phase) * 14;
+        sc = 1 + (Math.sin(t * 2.3 + phase) * 0.05);
+        break;
+    }
+
+    span.style.transform = `translate(${tx}px,${ty}px) rotate(${rot}deg) scale(${sc})`;
+  });
+
+  App.letterT += 0.02;
+}
+
 function loop() {
   if (App.paused) return;
   if (!App.currentMode) return;
 
   App.currentMode.update();
   App.currentMode.draw();
+  animateLetters();
 
   App.animFrameId = requestAnimationFrame(loop);
 }
