@@ -1,15 +1,16 @@
-const devoto = require('./devoto');
-const geant = require('./geant');
-const tiendainglesa = require('./tiendainglesa');
-const disco = require('./disco');
-const tata = require('./tata');
+const mercadolibre = require('./mercadolibre');
 
-const scrapers = [devoto, geant, tiendainglesa, disco, tata];
+// Los scrapers directos de supermercados se mantienen como intento secundario
+// pero los sitios renderizan precios con JS, por lo que frecuentemente fallan
+const directScrapers = [];
+try { directScrapers.push(require('./devoto')); } catch (_) {}
+try { directScrapers.push(require('./geant')); } catch (_) {}
+try { directScrapers.push(require('./tiendainglesa')); } catch (_) {}
+try { directScrapers.push(require('./disco')); } catch (_) {}
+try { directScrapers.push(require('./tata')); } catch (_) {}
 
-// Normaliza el nombre del producto para mejorar resultados de búsqueda:
-// - Expande abreviaciones comunes del ticket
-// - Elimina unidades sueltas al final
-// - Recorta a las primeras 4 palabras significativas
+// Normaliza nombre del producto: expande abreviaciones del ticket,
+// elimina códigos de barra, recorta a 4 palabras clave
 function normalizeForSearch(name) {
   const expansions = {
     'LCH': 'Leche', 'ACE': 'Aceite', 'YRB': 'Yerba', 'ARR': 'Arroz',
@@ -19,37 +20,30 @@ function normalizeForSearch(name) {
   };
 
   let result = name.trim();
-
-  // Reemplazar abreviaciones al inicio
   for (const [abbr, full] of Object.entries(expansions)) {
     result = result.replace(new RegExp(`^${abbr}\\b`, 'i'), full);
   }
-
-  // Eliminar códigos tipo "X12345" o secuencias solo numéricas largas
   result = result.replace(/\b[A-Z]{1,3}\d{4,}\b/g, '').replace(/\b\d{5,}\b/g, '');
-
-  // Normalizar espacios
   result = result.replace(/\s+/g, ' ').trim();
-
-  // Limitar a las primeras 4 palabras significativas (mínimo 2 chars)
   const words = result.split(' ').filter((w) => w.length > 1);
   return words.slice(0, 4).join(' ');
 }
 
 async function comparePrices(productName) {
   const searchTerm = normalizeForSearch(productName);
-  const results = await Promise.allSettled(
-    scrapers.map((scraper) =>
-      scraper.searchPrice(searchTerm).catch((err) => {
-        console.error(`[${scraper.STORE_NAME}] Error:`, err.message);
-        return null;
-      })
-    )
+  console.log(`[Buscar] "${productName}" → "${searchTerm}"`);
+
+  // Mercado Libre primero (API pública confiable)
+  const mlPromise = mercadolibre.searchPrice(searchTerm).catch(() => null);
+
+  // Scrapers directos en paralelo (pueden fallar, es OK)
+  const directPromises = directScrapers.map((s) =>
+    s.searchPrice(searchTerm).catch(() => null)
   );
 
-  const prices = results
-    .map((r) => (r.status === 'fulfilled' ? r.value : null))
-    .filter(Boolean);
+  const [mlResult, ...directResults] = await Promise.all([mlPromise, ...directPromises]);
+
+  const prices = [mlResult, ...directResults].filter(Boolean);
 
   if (prices.length === 0) return { product: productName, prices: [] };
 
