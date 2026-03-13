@@ -3,12 +3,30 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const { scanReceipt } = require('./src/ocr');
 const { compareAll } = require('./src/scrapers/index');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Rate limiters
+const scanLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas solicitudes. Esperá un minuto antes de volver a escanear.' },
+});
+
+const compareLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas solicitudes. Esperá un minuto antes de comparar de nuevo.' },
+});
 
 // Multer: imagen en memoria, max 10MB
 const upload = multer({
@@ -26,7 +44,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // POST /api/scan — Escanea imagen con Claude Vision
-app.post('/api/scan', upload.single('image'), async (req, res) => {
+app.post('/api/scan', scanLimiter, upload.single('image'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Se requiere una imagen' });
   }
@@ -47,7 +65,7 @@ app.post('/api/scan', upload.single('image'), async (req, res) => {
 });
 
 // POST /api/compare — Compara precios de una lista de productos
-app.post('/api/compare', async (req, res) => {
+app.post('/api/compare', compareLimiter, async (req, res) => {
   const { items } = req.body;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
