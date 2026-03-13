@@ -1,15 +1,16 @@
 // Mercado Libre Uruguay — API pública, sin autenticación
-// Documentación: https://developers.mercadolibre.com.uy/
 const axios = require('axios');
 
-const ML_SITE = 'MLU'; // Uruguay
+const ML_SITE = 'MLU';
 const ML_API = 'https://api.mercadolibre.com';
 
-// Categorías de supermercado en ML Uruguay
-const SUPERMARKET_CATEGORIES = [
-  'MLU1246', // Alimentos y Bebidas
-  'MLU1367', // Limpieza y Hogar
-];
+const HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Accept': 'application/json, text/plain, */*',
+  'Accept-Language': 'es-UY,es;q=0.9',
+  'Origin': 'https://www.mercadolibre.com.uy',
+  'Referer': 'https://www.mercadolibre.com.uy/',
+};
 
 function jaccardSimilarity(a, b) {
   const setA = new Set(a.toLowerCase().split(/\s+/));
@@ -24,32 +25,25 @@ async function searchPrice(productName) {
 
   try {
     const { data } = await axios.get(
-      `${ML_API}/sites/${ML_SITE}/search?q=${query}&limit=10`,
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0',
-          'Accept': 'application/json',
-        },
-        timeout: 10000,
-      }
+      `${ML_API}/sites/${ML_SITE}/search?q=${query}&limit=8`,
+      { headers: HEADERS, timeout: 12000 }
     );
 
     const results = data?.results ?? [];
-    if (results.length === 0) return null;
+    if (results.length === 0) {
+      console.log(`[MercadoLibre] Sin resultados para: ${productName}`);
+      return null;
+    }
 
-    // Filtrar solo productos en stock con precio
-    const available = results.filter(
-      (r) => r.price > 0 && r.available_quantity > 0
-    );
+    const available = results.filter((r) => r.price > 0);
     if (available.length === 0) return null;
 
-    // Elegir el más similar al nombre buscado
-    const best = available.reduce((prev, curr) => {
-      const scoreA = jaccardSimilarity(prev.title || '', productName);
-      const scoreB = jaccardSimilarity(curr.title || '', productName);
-      return scoreB > scoreA ? curr : prev;
-    });
+    const best = available.reduce((prev, curr) =>
+      jaccardSimilarity(curr.title || '', productName) >
+      jaccardSimilarity(prev.title || '', productName) ? curr : prev
+    );
 
+    console.log(`[MercadoLibre] Encontrado: "${best.title}" $${best.price}`);
     return {
       store: 'Mercado Libre UY',
       store_url: 'https://www.mercadolibre.com.uy',
@@ -59,7 +53,7 @@ async function searchPrice(productName) {
       url: best.permalink,
     };
   } catch (err) {
-    console.log(`[MercadoLibre] Error: ${err.message}`);
+    console.log(`[MercadoLibre] Error ${err.response?.status ?? err.message}`);
     return null;
   }
 }

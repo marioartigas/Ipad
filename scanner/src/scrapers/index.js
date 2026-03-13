@@ -39,10 +39,13 @@ async function comparePrices(productName) {
   };
 }
 
+// Procesa en serie con pausa para no ser bloqueado por rate limiting
 async function compareAll(items) {
-  const results = await Promise.all(
-    items.map((item) => comparePrices(item.name))
-  );
+  const results = [];
+  for (const item of items) {
+    results.push(await comparePrices(item.name));
+    await new Promise((r) => setTimeout(r, 400));
+  }
   return results;
 }
 
