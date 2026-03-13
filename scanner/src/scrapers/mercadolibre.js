@@ -1,16 +1,45 @@
-// Mercado Libre Uruguay — API pública, sin autenticación
+// Mercado Libre Uruguay — API con OAuth client credentials (gratis)
 const axios = require('axios');
 
 const ML_SITE = 'MLU';
 const ML_API = 'https://api.mercadolibre.com';
 
-const HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Accept': 'application/json, text/plain, */*',
-  'Accept-Language': 'es-UY,es;q=0.9',
-  'Origin': 'https://www.mercadolibre.com.uy',
-  'Referer': 'https://www.mercadolibre.com.uy/',
-};
+// Cache del token de acceso (expira cada 6 horas)
+let tokenCache = { token: null, expiresAt: 0 };
+
+async function getAccessToken() {
+  if (tokenCache.token && Date.now() < tokenCache.expiresAt) {
+    return tokenCache.token;
+  }
+
+  const appId = process.env.ML_APP_ID;
+  const secret = process.env.ML_SECRET_KEY;
+
+  if (!appId || !secret) {
+    console.log('[MercadoLibre] ML_APP_ID o ML_SECRET_KEY no configurados en .env');
+    return null;
+  }
+
+  try {
+    const { data } = await axios.post(
+      `${ML_API}/oauth/token`,
+      `grant_type=client_credentials&client_id=${appId}&client_secret=${secret}`,
+      {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        timeout: 8000,
+      }
+    );
+
+    tokenCache.token = data.access_token;
+    // Expira en (expires_in - 60) segundos para renovar con margen
+    tokenCache.expiresAt = Date.now() + (data.expires_in - 60) * 1000;
+    console.log('[MercadoLibre] Token de acceso obtenido correctamente');
+    return tokenCache.token;
+  } catch (err) {
+    console.log(`[MercadoLibre] Error obteniendo token: ${err.response?.data?.message ?? err.message}`);
+    return null;
+  }
+}
 
 function jaccardSimilarity(a, b) {
   const setA = new Set(a.toLowerCase().split(/\s+/));
@@ -21,12 +50,21 @@ function jaccardSimilarity(a, b) {
 }
 
 async function searchPrice(productName) {
+  const token = await getAccessToken();
+  if (!token) return null;
+
   const query = encodeURIComponent(productName);
 
   try {
     const { data } = await axios.get(
       `${ML_API}/sites/${ML_SITE}/search?q=${query}&limit=8`,
-      { headers: HEADERS, timeout: 12000 }
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+        timeout: 12000,
+      }
     );
 
     const results = data?.results ?? [];
