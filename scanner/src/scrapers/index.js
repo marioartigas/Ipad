@@ -1,5 +1,4 @@
 const google = require('./google');
-const mercadolibre = require('./mercadolibre');
 
 // Normaliza nombre del producto: expande abreviaciones del ticket,
 // elimina códigos de barra, recorta a 4 palabras clave
@@ -25,9 +24,7 @@ async function comparePrices(productName) {
   const searchTerm = normalizeForSearch(productName);
   console.log(`[Buscar] "${productName}" → "${searchTerm}"`);
 
-  // Intentar Google primero, luego ML como fallback
-  const result = await google.searchPrice(searchTerm)
-    ?? await mercadolibre.searchPrice(searchTerm);
+  const result = await google.searchPrice(searchTerm);
 
   if (!result) return { product: productName, prices: [] };
 
