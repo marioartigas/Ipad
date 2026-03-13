@@ -36,7 +36,7 @@ async function getAccessToken() {
     console.log('[MercadoLibre] Token de acceso obtenido correctamente');
     return tokenCache.token;
   } catch (err) {
-    console.log(`[MercadoLibre] Error obteniendo token: ${err.response?.data?.message ?? err.message}`);
+    console.log(`[MercadoLibre] Error obteniendo token: ${JSON.stringify(err.response?.data) ?? err.message}`);
     return null;
   }
 }
@@ -56,16 +56,12 @@ async function searchPrice(productName) {
   const query = encodeURIComponent(productName);
 
   try {
-    const { data } = await axios.get(
-      `${ML_API}/sites/${ML_SITE}/search?q=${query}&limit=8`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
-        timeout: 12000,
-      }
-    );
+    // Intentar con token como query param (alternativa al header)
+    const url = `${ML_API}/sites/${ML_SITE}/search?q=${query}&limit=8&access_token=${token}`;
+    const { data } = await axios.get(url, {
+      headers: { 'Accept': 'application/json' },
+      timeout: 12000,
+    });
 
     const results = data?.results ?? [];
     if (results.length === 0) {
@@ -91,7 +87,7 @@ async function searchPrice(productName) {
       url: best.permalink,
     };
   } catch (err) {
-    console.log(`[MercadoLibre] Error ${err.response?.status ?? err.message}`);
+    console.log(`[MercadoLibre] Error ${err.response?.status}: ${JSON.stringify(err.response?.data)}`);
     return null;
   }
 }
