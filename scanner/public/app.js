@@ -187,8 +187,8 @@ document.getElementById('btnCompare').addEventListener('click', async () => {
   }
 
   showScreen('screen-loading');
-  document.getElementById('loadingTitle').textContent = 'Comparando precios...';
-  document.getElementById('loadingStep').textContent = `Buscando en Devoto, Géant, Tienda Inglesa, Disco y Ta-Ta`;
+  document.getElementById('loadingTitle').textContent = 'Consultando precios...';
+  document.getElementById('loadingStep').textContent = `Claude IA está estimando precios en supermercados uruguayos`;
 
   try {
     const response = await fetch('/api/compare', {
@@ -254,7 +254,8 @@ function renderResults(results, totalProducts) {
               ? `<a href="${escapeHtml(p.url)}" target="_blank" rel="noopener">${escapeHtml(p.store)}</a>`
               : escapeHtml(p.store)
             }
-            ${p.product_name && p.product_name !== result.product
+            ${p.is_estimate ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">Estimado IA${p.price_range ? ' · rango: $' + escapeHtml(p.price_range) : ''}</div>` : ''}
+            ${!p.is_estimate && p.product_name && p.product_name !== result.product
               ? `<div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px">${escapeHtml(p.product_name)}</div>`
               : ''
             }
