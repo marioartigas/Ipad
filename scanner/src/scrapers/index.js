@@ -1,14 +1,5 @@
 const mercadolibre = require('./mercadolibre');
 
-// Los scrapers directos de supermercados se mantienen como intento secundario
-// pero los sitios renderizan precios con JS, por lo que frecuentemente fallan
-const directScrapers = [];
-try { directScrapers.push(require('./devoto')); } catch (_) {}
-try { directScrapers.push(require('./geant')); } catch (_) {}
-try { directScrapers.push(require('./tiendainglesa')); } catch (_) {}
-try { directScrapers.push(require('./disco')); } catch (_) {}
-try { directScrapers.push(require('./tata')); } catch (_) {}
-
 // Normaliza nombre del producto: expande abreviaciones del ticket,
 // elimina códigos de barra, recorta a 4 palabras clave
 function normalizeForSearch(name) {
@@ -33,32 +24,18 @@ async function comparePrices(productName) {
   const searchTerm = normalizeForSearch(productName);
   console.log(`[Buscar] "${productName}" → "${searchTerm}"`);
 
-  // Mercado Libre primero (API pública confiable)
-  const mlPromise = mercadolibre.searchPrice(searchTerm).catch(() => null);
+  const result = await mercadolibre.searchPrice(searchTerm);
 
-  // Scrapers directos en paralelo (pueden fallar, es OK)
-  const directPromises = directScrapers.map((s) =>
-    s.searchPrice(searchTerm).catch(() => null)
-  );
-
-  const [mlResult, ...directResults] = await Promise.all([mlPromise, ...directPromises]);
-
-  const prices = [mlResult, ...directResults].filter(Boolean);
-
-  if (prices.length === 0) return { product: productName, prices: [] };
-
-  const sorted = prices.sort((a, b) => a.price - b.price);
-  const minPrice = sorted[0].price;
-  const maxPrice = sorted[sorted.length - 1].price;
+  if (!result) return { product: productName, prices: [] };
 
   return {
     product: productName,
-    prices: sorted.map((p) => ({
-      ...p,
-      is_cheapest: p.price === minPrice,
-      is_most_expensive: p.price === maxPrice && prices.length > 1,
-      savings: maxPrice - p.price,
-    })),
+    prices: [{
+      ...result,
+      is_cheapest: true,
+      is_most_expensive: false,
+      savings: 0,
+    }],
   };
 }
 
